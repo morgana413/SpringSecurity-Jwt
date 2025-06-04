@@ -5,8 +5,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.example.myprojectbackend.entity.RestBean;
+import org.example.myprojectbackend.entity.dto.Account;
 import org.example.myprojectbackend.entity.vo.response.AuthorizeVO;
 import org.example.myprojectbackend.filter.JwtAuthorizeFilter;
+import org.example.myprojectbackend.service.AccountService;
+import org.example.myprojectbackend.service.impl.AccountServiceImpl;
 import org.example.myprojectbackend.utils.JwtUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +33,10 @@ public class SecurityConfiguration {
 
     @Resource
     JwtAuthorizeFilter jwtAuthorizeFilter;
+
+    @Resource
+    AccountServiceImpl accountService;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -76,14 +83,15 @@ public class SecurityConfiguration {
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
         User user = (User) authentication.getPrincipal();
-        String token = jwtUtils.createJwt(user, 1, "Tim");
+        Account account =accountService.findAccountByEmailOrName(user.getUsername());
+        String token = jwtUtils.createJwt(user, account.getId(), account.getUsername());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         AuthorizeVO authorizeVO = new AuthorizeVO();
         authorizeVO.setExpiresAt(jwtUtils.expireTime());
         authorizeVO.setToken(token);
-        authorizeVO.setRole("");
-        authorizeVO.setUsername("");
+        authorizeVO.setRole(account.getRole());
+        authorizeVO.setUsername(account.getUsername());
         response.getWriter().println(RestBean.success(authorizeVO).asJsonString());
     }
 /*    public void onAuthenticationFailure(HttpServletRequest request,
