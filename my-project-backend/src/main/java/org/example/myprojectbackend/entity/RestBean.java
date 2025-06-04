@@ -12,11 +12,11 @@ public record RestBean<T>(int code, String msg, T data) {
         return success(null);
     }
 
-    public static <T> RestBean<T> failure(String msg) {
+    public static <T> RestBean<T> failure(String msg) {return new RestBean<>(401,msg,null);}
+
+    public static <T> RestBean<T> forbidden(String msg) {
         return new RestBean<>(403,msg,null);
     }
-
-
 
     public String asJsonString() {
         return JSONObject.toJSONString(this, JSONWriter.Feature.WriteNulls);
