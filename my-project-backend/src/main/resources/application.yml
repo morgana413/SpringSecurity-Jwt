@@ -1,4 +1,7 @@
 spring:
+  security:
+    filter:
+      order: -100
   datasource:
     url:  jdbc:mysql://localhost:3306/jwt
     username: root

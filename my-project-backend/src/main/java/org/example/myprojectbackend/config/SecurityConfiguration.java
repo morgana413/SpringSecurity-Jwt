@@ -11,6 +11,7 @@ import org.example.myprojectbackend.filter.JwtAuthorizeFilter;
 import org.example.myprojectbackend.service.AccountService;
 import org.example.myprojectbackend.service.impl.AccountServiceImpl;
 import org.example.myprojectbackend.utils.JwtUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.AccessDeniedException;
@@ -87,11 +88,10 @@ public class SecurityConfiguration {
         String token = jwtUtils.createJwt(user, account.getId(), account.getUsername());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        AuthorizeVO authorizeVO = new AuthorizeVO();
-        authorizeVO.setExpiresAt(jwtUtils.expireTime());
-        authorizeVO.setToken(token);
-        authorizeVO.setRole(account.getRole());
-        authorizeVO.setUsername(account.getUsername());
+        AuthorizeVO authorizeVO = account.asViewObject(AuthorizeVO.class,v->{
+            v.setExpiresAt(jwtUtils.expireTime());
+            v.setToken(token);
+        });
         response.getWriter().println(RestBean.success(authorizeVO).asJsonString());
     }
 /*    public void onAuthenticationFailure(HttpServletRequest request,

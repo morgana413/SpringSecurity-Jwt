@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import org.example.myprojectbackend.entity.BaseData;
+
 /**
  * (Account)表实体类
  *
@@ -19,7 +21,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 @AllArgsConstructor
 @NoArgsConstructor
 @TableName("account")
-public class Account  {
+public class Account implements BaseData {
 @TableId
     private Integer id;
 
