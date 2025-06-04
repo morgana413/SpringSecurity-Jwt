@@ -20,6 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 @Configuration
 public class SecurityConfiguration {
@@ -96,7 +97,15 @@ public class SecurityConfiguration {
     public void onLogoutSuccess(HttpServletRequest request,
                                 HttpServletResponse response,
                                 Authentication authentication) throws IOException, ServletException {
-        response.getWriter().println("<h1>Logout success</h1>");
+        PrintWriter writer = response.getWriter();
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        String authorization = request.getHeader("Authorization");
+        if (jwtUtils.invalidateJWT(authorization)) {
+            writer.write(RestBean.success().asJsonString());
+        }else{
+            writer.write(RestBean.failure("退出登录失败").asJsonString());
+        }
     }
 
 }

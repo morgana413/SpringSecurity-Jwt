@@ -6,7 +6,9 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,9 +18,14 @@ import org.springframework.util.StringUtils;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class JwtUtils {
+
+    @Resource
+    StringRedisTemplate stringRedisTemplate;
 
     private static final String signKey = "morgana";
 
@@ -26,6 +33,7 @@ public class JwtUtils {
     Algorithm algorithm = Algorithm.HMAC256(signKey);
     return JWT.create()
             //JWT封装的信息
+            .withJWTId(UUID.randomUUID().toString())
             .withClaim("id",id)
             .withClaim("name",username)
             .withClaim("authorities",userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList())
@@ -44,6 +52,7 @@ public class JwtUtils {
         JWTVerifier verifier = JWT.require(algorithm).build();
         try {
             DecodedJWT jwt = verifier.verify(token);
+            if(isValidJWT(jwt.getId())) return null;
             Date expiresAt = jwt.getExpiresAt();
             return new Date().after(expiresAt) ? null : jwt;
         } catch (JWTVerificationException e) {
@@ -51,6 +60,29 @@ public class JwtUtils {
         }
     }
 
+    public boolean invalidateJWT(String headerToken) {
+        String token = convertToken(headerToken);
+        if (token == null) return false;
+        Algorithm algorithm = Algorithm.HMAC256(signKey);
+        JWTVerifier verifier = JWT.require(algorithm).build();
+        try {
+            DecodedJWT decodedJWT = verifier.verify(token);
+            String jwtId = decodedJWT.getId();
+            return deleteJWT(jwtId,decodedJWT.getExpiresAt());
+        } catch (JWTVerificationException e) {
+            return false;
+        }
+    }
+    public boolean deleteJWT(String uuid,Date expiresAt) {
+        if (isValidJWT(uuid)) return false;
+        Date now = new Date();
+        Long expiresIn = Math.max(expiresAt.getTime() - now.getTime(), 0);
+        stringRedisTemplate.opsForValue().set(Const.JWT_BLACK_LIST+uuid,"",expiresIn, TimeUnit.MILLISECONDS);
+        return true;
+    }
+    public boolean isValidJWT(String uuid) {
+        return stringRedisTemplate.hasKey(Const.JWT_BLACK_LIST+uuid);
+    }
     public Date expireTime(){
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.HOUR,10);
